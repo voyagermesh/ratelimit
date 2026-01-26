@@ -7,7 +7,7 @@ MODULE = github.com/envoyproxy/ratelimit
 GIT_REF = $(shell git describe --tags --exact-match 2>/dev/null || git rev-parse --short=8 --verify HEAD)
 VERSION ?= $(GIT_REF)
 SHELL := /bin/bash
-BUILDX_PLATFORMS := linux/amd64,linux/arm64/v8
+BUILDX_PLATFORMS := linux/amd64,linux/arm64
 # Root dir returns absolute path of current directory. It has a trailing "/".
 PROJECT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 export PROJECT_DIR
@@ -142,8 +142,18 @@ docker_multiarch_image: docker_tests
 	docker buildx build -t $(IMAGE):$(VERSION) --platform $(BUILDX_PLATFORMS) .
 
 .PHONY: docker_multiarch_push
-docker_multiarch_push: docker_multiarch_image
-	docker buildx build -t $(IMAGE):$(VERSION) --platform $(BUILDX_PLATFORMS) --push .
+docker_multiarch_push:
+	docker buildx build -t $(IMAGE):$(VERSION) --platform $(BUILDX_PLATFORMS) --push --sbom=false --provenance=false .
+
+.PHONY: ubi_multiarch_push
+ubi_multiarch_push:
+	docker buildx build --label version=$(VERSION) --label release=$(VERSION) -t $(IMAGE):$(VERSION)-ubi --platform $(BUILDX_PLATFORMS) --push -f Dockerfile.ubi --sbom=false --provenance=false .
+
+.PHONY: docker-certify-redhat
+docker-certify-redhat:
+	@preflight check container $(IMAGE):$(VERSION)-ubi \
+		--submit \
+		--certification-component-id=697708d9a1deef4e7c7c9e28
 
 .PHONY: integration_tests
 integration_tests:

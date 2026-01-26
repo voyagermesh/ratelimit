@@ -1,0 +1,27 @@
+FROM golang:1.25.6@sha256:fc24d3881a021e7b968a4610fc024fba749f98fe5c07d4f28e6cfa14dc65a84c AS build
+WORKDIR /ratelimit
+
+ENV GOPROXY=https://proxy.golang.org
+COPY go.mod go.sum /ratelimit/
+RUN go mod download
+
+COPY src src
+COPY script script
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /go/bin/ratelimit -ldflags="-w -s" -v github.com/envoyproxy/ratelimit/src/service_cmd
+
+FROM registry.access.redhat.com/ubi10/ubi-minimal
+
+LABEL org.opencontainers.image.source="https://github.com/voyagermesh/ratelimit" \
+    name="Voyager Ratelimiter" \
+    maintainer=AppsCode \
+    vendor=AppsCode \
+    summary="Go/gRPC service designed to enable generic rate limit scenarios from different types of applications" \
+    description="Go/gRPC service designed to enable generic rate limit scenarios from different types of applications"
+
+RUN mkdir -p /licenses
+COPY LICENSE /licenses/
+
+USER 65534:65534
+
+COPY --from=build /go/bin/ratelimit /bin/ratelimit
