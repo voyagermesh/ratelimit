@@ -3,7 +3,6 @@ cover.out
 bin/
 env/
 .idea/
-.vscode/
 vendor
 cert.pem
 key.pem
@@ -16,3 +15,6 @@ dump.rdb
 # Directories created by "test_with_redis" make target.
 63*
 26*
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
